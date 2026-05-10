@@ -1,4 +1,5 @@
-const Wishlist = require('../models/Wishlist');
+//const Wishlist = require('../models/Wishlist');
+import Wishlist from '../models/Wishlist.js';
 
 const getWishlists = async (req, res) => {
   try {
@@ -48,4 +49,4 @@ const removeFromWishlist = async (req, res) => {
   }
 };
 
-module.exports = { getWishlists, createWishlist, addToWishlist, removeFromWishlist };
+export { getWishlists, createWishlist, addToWishlist, removeFromWishlist };

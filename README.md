@@ -29,3 +29,21 @@ Backend API on http://localhost:5000
 
 ## Seeding an Admin
 Use MongoDB shell or Compass to set a user's role to `"admin"` directly.
+
+## 🔐 Demo Login Credentials
+
+Use the following credentials to explore the platform based on user roles:
+
+### Seller
+email: farm@example.com
+password: 123456
+
+### cutomer
+email: kumar@gmail.com
+password: kumar123
+
+### Admin
+email: admin@neradi.com
+password: 123456
+
+

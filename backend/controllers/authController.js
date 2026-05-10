@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
@@ -60,10 +60,25 @@ const login = async (req, res) => {
   }
 };
 
+// @route POST /api/auth/loout
+const logout = async (req, res) => {
+  // For JWT, Logout is handled client-side by deleting the token
+  try {
+        res.clearCookie('token');
+        res.status(200).json({
+            message: "Logged out successfully" 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: error.message 
+        });
+    }
+};  
+
 // @route GET /api/auth/me
 const getMe = async (req, res) => {
   const user = await User.findById(req.user._id).select('-password');
   res.json(user);
 };
 
-module.exports = { register, login, getMe };
+export { register, login, getMe, logout };

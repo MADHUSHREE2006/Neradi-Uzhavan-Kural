@@ -1,7 +1,12 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import dns from 'node:dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+
+dotenv.config();
 
 const app = express();
 
@@ -11,17 +16,28 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/wishlist', require('./routes/wishlist'));
-app.use('/api/wallet', require('./routes/wallet'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/categories', require('./routes/categories'));
+import authRoutes from './routes/auth.js';
+import productRoutes from './routes/products.js';
+import orderRoutes from './routes/orders.js';
+import cartRoutes from './routes/cart.js';
+import wishlistRoutes from './routes/wishlist.js';
+import walletRoutes from './routes/wallet.js';
+import adminRoutes from './routes/admin.js';
+import categoryRoutes from './routes/categories.js';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Health check
-app.get('/', (req, res) => res.json({ message: 'Neradi Uzhavan Kural API running' }));
+app.get('/', (req, res) => res.json({ 
+  message: 'Neradi Uzhavan Kural API running' 
+}));
 
 // Connect DB and start server
 mongoose

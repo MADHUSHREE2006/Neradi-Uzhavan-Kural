@@ -1,10 +1,12 @@
-const router = require('express').Router();
-const { getCategories, createCategory, updateCategory, deleteCategory } = require('../controllers/categoryController');
-const { protect, requireRole } = require('../middleware/auth');
+import express from 'express';
+import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController.js';
+import { protect, requireRole } from '../middleware/auth.js';
+
+const router = express.Router();
 
 router.get('/', getCategories);
 router.post('/', protect, requireRole('admin'), createCategory);
 router.put('/:id', protect, requireRole('admin'), updateCategory);
 router.delete('/:id', protect, requireRole('admin'), deleteCategory);
 
-module.exports = router;
+export default router;

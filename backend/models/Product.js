@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const stockByPinSchema = new mongoose.Schema({
   pinCode: { type: String, required: true },
@@ -28,4 +28,4 @@ const productSchema = new mongoose.Schema(
 // Full-text search index
 productSchema.index({ name: 'text', description: 'text' });
 
-module.exports = mongoose.model('Product', productSchema);
+export default mongoose.model('Product', productSchema);

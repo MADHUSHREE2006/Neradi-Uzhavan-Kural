@@ -1,8 +1,8 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
-const User = require('../models/User');
-const WalletTransaction = require('../models/WalletTransaction');
-const Cart = require('../models/Cart');
+import Order from '../models/Order.js';
+import Product from '../models/Product.js';
+import User from '../models/User.js';
+import WalletTransaction from '../models/WalletTransaction.js';
+import Cart from '../models/Cart.js';
 
 // @route POST /api/orders
 const placeOrder = async (req, res) => {
@@ -132,4 +132,4 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-module.exports = { placeOrder, getMyOrders, getOrder, getSellerOrders, updateOrderStatus };
+export { placeOrder, getMyOrders, getOrder, getSellerOrders, updateOrderStatus };

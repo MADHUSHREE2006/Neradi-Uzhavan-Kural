@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const WalletTransaction = require('../models/WalletTransaction');
+import User from '../models/User.js';
+import WalletTransaction from '../models/WalletTransaction.js';
 
 const getWallet = async (req, res) => {
   try {
@@ -35,4 +35,4 @@ const addFunds = async (req, res) => {
   }
 };
 
-module.exports = { getWallet, addFunds };
+export { getWallet, addFunds };

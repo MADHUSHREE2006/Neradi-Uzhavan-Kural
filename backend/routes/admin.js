@@ -1,8 +1,10 @@
-const router = require('express').Router();
-const {
+import express from 'express';
+import {
   getSellers, updateSellerStatus, getAllOrders, getDashboardStats, getStockByLocation,
-} = require('../controllers/adminController');
-const { protect, requireRole } = require('../middleware/auth');
+} from '../controllers/adminController.js';
+import { protect, requireRole } from '../middleware/auth.js';
+
+const router = express.Router();
 
 router.use(protect, requireRole('admin'));
 
@@ -12,4 +14,4 @@ router.put('/sellers/:id/status', updateSellerStatus);
 router.get('/orders', getAllOrders);
 router.get('/stock', getStockByLocation);
 
-module.exports = router;
+export default router;

@@ -1,10 +1,12 @@
-const router = require('express').Router();
-const multer = require('multer');
-const path = require('path');
-const {
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import {
   getProducts, getProduct, createProduct, updateProduct, deleteProduct, getMyProducts,
-} = require('../controllers/productController');
-const { protect, requireApprovedSeller } = require('../middleware/auth');
+} from '../controllers/productController.js';
+import { protect, requireApprovedSeller } from '../middleware/auth.js';
+
+const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: 'uploads/',
@@ -19,4 +21,4 @@ router.post('/', protect, requireApprovedSeller, upload.array('images', 5), crea
 router.put('/:id', protect, requireApprovedSeller, updateProduct);
 router.delete('/:id', protect, requireApprovedSeller, deleteProduct);
 
-module.exports = router;
+export default router;

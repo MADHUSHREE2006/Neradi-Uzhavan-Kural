@@ -1,6 +1,6 @@
-const User = require('../models/User');
-const Order = require('../models/Order');
-const Product = require('../models/Product');
+import User from '../models/User.js';
+import Order from '../models/Order.js';
+import Product from '../models/Product.js';
 
 // Seller management
 const getSellers = async (req, res) => {
@@ -86,4 +86,4 @@ const getStockByLocation = async (req, res) => {
   }
 };
 
-module.exports = { getSellers, updateSellerStatus, getAllOrders, getDashboardStats, getStockByLocation };
+export { getSellers, updateSellerStatus, getAllOrders, getDashboardStats, getStockByLocation };
