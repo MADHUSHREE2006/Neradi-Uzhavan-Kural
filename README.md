@@ -38,7 +38,7 @@ Use the following credentials to explore the platform based on user roles:
 email: farm@example.com
 password: 123456
 
-### cutomer
+### customer
 email: kumar@gmail.com
 password: kumar123
 
