@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../api/axios';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -12,8 +13,52 @@ export default function ProductDetail() {
   const [pinCode, setPinCode] = useState('');
   const [pinAvailable, setPinAvailable] = useState(null);
   const { addToCart } = useCart();
+  const { user } = useAuth();
+
+  // Wishlist state
+  const [wishlists, setWishlists] = useState([]);
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
 
   useEffect(() => { api.get(`/products/${id}`).then((r) => setProduct(r.data)); }, [id]);
+  useEffect(() => {
+    if (user) api.get('/wishlist').then((r) => setWishlists(r.data)).catch(() => {});
+  }, [user]);
+
+  const isInAnyWishlist = () =>
+    wishlists.some((l) => l.products.some((p) => (p._id || p) === id));
+
+  const handleWishlistToggle = async () => {
+    if (!user) { toast.error('Login to use wishlist'); return; }
+    if (wishlists.length === 0) {
+      const { data: newList } = await api.post('/wishlist', { name: 'My Wishlist' });
+      await api.post(`/wishlist/${newList._id}/add`, { productId: id });
+      api.get('/wishlist').then((r) => setWishlists(r.data));
+      toast.success('Added to wishlist');
+      return;
+    }
+    if (wishlists.length === 1) {
+      const list = wishlists[0];
+      const already = list.products.some((p) => (p._id || p) === id);
+      if (already) {
+        await api.delete(`/wishlist/${list._id}/remove/${id}`);
+        api.get('/wishlist').then((r) => setWishlists(r.data));
+        toast.success('Removed from wishlist');
+      } else {
+        await api.post(`/wishlist/${list._id}/add`, { productId: id });
+        api.get('/wishlist').then((r) => setWishlists(r.data));
+        toast.success('Added to wishlist');
+      }
+      return;
+    }
+    setShowWishlistPicker(true);
+  };
+
+  const addToWishlistFromPicker = async (listId) => {
+    await api.post(`/wishlist/${listId}/add`, { productId: id });
+    api.get('/wishlist').then((r) => setWishlists(r.data));
+    setShowWishlistPicker(false);
+    toast.success('Added to wishlist');
+  };
 
   const checkPin = () => {
     const stock = product.stockByPin?.find((s) => s.pinCode === pinCode);
@@ -66,7 +111,14 @@ export default function ProductDetail() {
 
             <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--green-700)', marginBottom: '1rem' }}>
               ₹{product.price}
-              <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-muted)' }}> / {product.unit}</span>
+              <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-muted)' }}>
+                {' '}/ {product.isRental ? (product.rentalUnit === 'per_hour' ? 'hour' : 'day') : product.unit}
+              </span>
+              {product.isRental && (
+                <span className="badge badge-amber" style={{ marginLeft: '0.75rem', fontSize: '0.75rem', verticalAlign: 'middle' }}>
+                  🚜 Rental · {product.rentalUnit === 'per_hour' ? 'Per Hour' : 'Per Day'}
+                </span>
+              )}
             </div>
 
             {product.description && (
@@ -98,7 +150,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Qty + Add to cart */}
+            {/* Qty + Add to cart + Wishlist */}
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--cream-dark)', borderRadius: 'var(--radius-sm)', padding: '0.25rem' }}>
                 <button
@@ -114,7 +166,35 @@ export default function ProductDetail() {
               <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handleAddToCart}>
                 🛒 Add to Cart · ₹{(product.price * qty).toFixed(2)}
               </button>
+              <button
+                onClick={handleWishlistToggle}
+                title={isInAnyWishlist() ? 'In Wishlist' : 'Add to Wishlist'}
+                style={{
+                  width: 48, height: 48, borderRadius: 'var(--radius-sm)', border: '2px solid #e53e3e',
+                  background: isInAnyWishlist() ? '#e53e3e' : '#fff',
+                  color: isInAnyWishlist() ? '#fff' : '#e53e3e',
+                  fontSize: '1.4rem', cursor: 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >{isInAnyWishlist() ? '♥' : '♡'}</button>
             </div>
+
+            {/* Wishlist picker */}
+            {showWishlistPicker && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setShowWishlistPicker(false)}>
+                <div className="card" style={{ minWidth: 320, maxWidth: 400, padding: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
+                  <h3 style={{ marginBottom: '1rem', color: 'var(--green-900)' }}>Add to Wishlist</h3>
+                  {wishlists.map((l) => (
+                    <button key={l._id} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.5rem', textAlign: 'left' }}
+                      onClick={() => addToWishlistFromPicker(l._id)}>
+                      ♡ {l.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>({l.products.length} items)</span>
+                    </button>
+                  ))}
+                  <button className="btn btn-ghost btn-sm" style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }} onClick={() => setShowWishlistPicker(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

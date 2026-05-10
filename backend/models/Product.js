@@ -18,6 +18,9 @@ const productSchema = new mongoose.Schema(
     stockByPin: [stockByPinSchema],
     totalStock: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    // Rental / Machinery fields
+    isRental: { type: Boolean, default: false },
+    rentalUnit: { type: String, enum: ['per_day', 'per_hour', ''], default: '' },
     // Ratings
     rating: { type: Number, default: 0 },
     numReviews: { type: Number, default: 0 },

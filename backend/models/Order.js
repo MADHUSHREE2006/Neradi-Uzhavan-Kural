@@ -29,6 +29,7 @@ const orderSchema = new mongoose.Schema(
       default: 'placed',
     },
     totalAmount: { type: Number, required: true },
+    paymentTransactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'WalletTransaction' },
     trackingHistory: [
       {
         status: String,

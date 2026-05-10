@@ -37,7 +37,8 @@ export default function SellerDashboard() {
     );
   }
 
-  const revenue = orders.filter((o) => o.paymentStatus === 'paid').reduce((sum, o) => sum + o.totalAmount, 0);
+  const revenue = orders.filter((o) => o.paymentStatus === 'paid' && o.orderStatus === 'delivered').reduce((sum, o) => sum + o.totalAmount, 0);
+  const pendingRevenue = orders.filter((o) => o.paymentStatus === 'paid' && o.orderStatus !== 'delivered' && o.orderStatus !== 'cancelled').reduce((sum, o) => sum + o.totalAmount, 0);
   const pendingOrders = orders.filter((o) => !['delivered', 'cancelled'].includes(o.orderStatus)).length;
 
   return (
@@ -63,7 +64,8 @@ export default function SellerDashboard() {
           {[
             { icon: '📦', label: 'Total Orders', value: orders.length, color: '#2563eb' },
             { icon: '⏳', label: 'Active Orders', value: pendingOrders, color: '#d97706' },
-            { icon: '💰', label: 'Revenue', value: `₹${revenue.toLocaleString('en-IN')}`, color: '#059669' },
+            { icon: '💰', label: 'Revenue (Delivered)', value: `₹${revenue.toLocaleString('en-IN')}`, color: '#059669' },
+            { icon: '⏳', label: 'Pending Revenue', value: `₹${pendingRevenue.toLocaleString('en-IN')}`, color: '#d97706' },
             { icon: '🌾', label: 'Products', value: products.length, color: '#7c3aed' },
           ].map((s) => (
             <div key={s.label} className="seller-stat">

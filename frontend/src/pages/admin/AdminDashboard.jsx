@@ -21,7 +21,7 @@ export default function AdminDashboard() {
     { label: 'Pending Approval', value: stats.pendingSellers, icon: '⏳', color: '#d97706', alert: stats.pendingSellers > 0 },
     { label: 'Total Orders', value: stats.totalOrders, icon: '📦', color: '#0891b2' },
     { label: 'Active Products', value: stats.totalProducts, icon: '🌾', color: '#059669' },
-    { label: 'Total Revenue', value: `₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`, icon: '💰', color: '#2e7d32' },
+    { label: 'Total Revenue', value: `₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`, icon: '💰', color: '#2e7d32', sub: 'From paid & delivered orders' },
   ];
 
   return (
@@ -44,6 +44,7 @@ export default function AdminDashboard() {
               <div>
                 <div className="admin-stat-card__value">{s.value ?? '—'}</div>
                 <div className="admin-stat-card__label">{s.label}</div>
+                {s.sub && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{s.sub}</div>}
               </div>
               {s.alert && <span className="admin-stat-card__badge">Action needed</span>}
             </div>

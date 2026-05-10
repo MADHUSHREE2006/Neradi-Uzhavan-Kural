@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../api/axios';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import './Products.css';
 
 export default function Products() {
@@ -13,8 +14,19 @@ export default function Products() {
   const [pinCode, setPinCode] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const category = searchParams.get('category') || '';
+
+  // Wishlist state
+  const [wishlists, setWishlists] = useState([]);
+  const [wishlistModal, setWishlistModal] = useState(null); // productId being added
+
+  const fetchWishlists = useCallback(() => {
+    if (user) api.get('/wishlist').then((r) => setWishlists(r.data)).catch(() => {});
+  }, [user]);
+
+  useEffect(() => { fetchWishlists(); }, [fetchWishlists]);
 
   useEffect(() => { api.get('/categories').then((r) => setCategories(r.data)); }, []);
 
@@ -33,6 +45,37 @@ export default function Products() {
     e.stopPropagation();
     try { await addToCart(productId); toast.success('Added to cart'); }
     catch { toast.error('Login to add to cart'); }
+  };
+
+  const isInAnyWishlist = (productId) =>
+    wishlists.some((l) => l.products.some((p) => p._id === productId || p === productId));
+
+  const handleWishlistClick = (e, productId) => {
+    e.stopPropagation();
+    if (!user) { toast.error('Login to use wishlist'); return; }
+    if (wishlists.length === 0) {
+      // Auto-create a default list and add
+      api.post('/wishlist', { name: 'My Wishlist' }).then((r) => {
+        api.post(`/wishlist/${r.data._id}/add`, { productId }).then(() => {
+          fetchWishlists(); toast.success('Added to wishlist');
+        });
+      });
+    } else if (wishlists.length === 1) {
+      const list = wishlists[0];
+      const already = list.products.some((p) => (p._id || p) === productId);
+      if (already) {
+        api.delete(`/wishlist/${list._id}/remove/${productId}`).then(() => { fetchWishlists(); toast.success('Removed from wishlist'); });
+      } else {
+        api.post(`/wishlist/${list._id}/add`, { productId }).then(() => { fetchWishlists(); toast.success('Added to wishlist'); });
+      }
+    } else {
+      setWishlistModal(productId);
+    }
+  };
+
+  const addToWishlistFromModal = async (listId, productId) => {
+    await api.post(`/wishlist/${listId}/add`, { productId });
+    fetchWishlists(); setWishlistModal(null); toast.success('Added to wishlist');
   };
 
   return (
@@ -120,6 +163,20 @@ export default function Products() {
                         className="btn btn-primary btn-sm"
                         onClick={(e) => handleAddToCart(e, p._id)}
                       >+ Cart</button>
+                      <button
+                        className="btn btn-sm"
+                        title={isInAnyWishlist(p._id) ? 'In Wishlist' : 'Add to Wishlist'}
+                        onClick={(e) => handleWishlistClick(e, p._id)}
+                        style={{
+                          background: isInAnyWishlist(p._id) ? '#e53e3e' : 'rgba(255,255,255,0.9)',
+                          color: isInAnyWishlist(p._id) ? '#fff' : '#e53e3e',
+                          border: '1px solid #e53e3e',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '0.35rem 0.6rem',
+                          fontSize: '1rem',
+                          lineHeight: 1,
+                        }}
+                      >{isInAnyWishlist(p._id) ? '♥' : '♡'}</button>
                     </div>
                   </div>
                   <div className="product-card__body">
@@ -130,11 +187,13 @@ export default function Products() {
                     </div>
                     <div className="product-card__footer">
                       <div className="product-card__price">
-                        ₹{p.price}<span>/{p.unit}</span>
+                        ₹{p.price}<span>/{p.isRental ? (p.rentalUnit === 'per_hour' ? 'hr' : 'day') : p.unit}</span>
                       </div>
-                      {p.totalStock > 0
-                        ? <span className="badge badge-green">In Stock</span>
-                        : <span className="badge badge-red">Out of Stock</span>
+                      {p.isRental
+                        ? <span className="badge badge-amber">🚜 Rental</span>
+                        : p.totalStock > 0
+                          ? <span className="badge badge-green">In Stock</span>
+                          : <span className="badge badge-red">Out of Stock</span>
                       }
                     </div>
                   </div>
@@ -144,6 +203,24 @@ export default function Products() {
           )}
         </main>
       </div>
+
+      {/* Wishlist picker modal */}
+      {wishlistModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setWishlistModal(null)}>
+          <div className="card" style={{ minWidth: 320, maxWidth: 400, padding: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--green-900)' }}>Add to Wishlist</h3>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Choose a wishlist:</p>
+            {wishlists.map((l) => (
+              <button key={l._id} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '0.5rem', textAlign: 'left' }}
+                onClick={() => addToWishlistFromModal(l._id, wishlistModal)}>
+                ♡ {l.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>({l.products.length} items)</span>
+              </button>
+            ))}
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }} onClick={() => setWishlistModal(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

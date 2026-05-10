@@ -35,6 +35,7 @@ const placeOrder = async (req, res) => {
     }
 
     // Wallet payment
+    let walletTxn = null;
     if (paymentMethod === 'wallet') {
       const customer = await User.findById(req.user._id);
       if (customer.walletBalance < totalAmount)
@@ -43,7 +44,7 @@ const placeOrder = async (req, res) => {
       customer.walletBalance -= totalAmount;
       await customer.save();
 
-      await WalletTransaction.create({
+      walletTxn = await WalletTransaction.create({
         user: customer._id,
         type: 'debit',
         amount: totalAmount,
@@ -67,8 +68,15 @@ const placeOrder = async (req, res) => {
       paymentMethod,
       paymentStatus: paymentMethod === 'wallet' ? 'paid' : 'pending',
       totalAmount,
+      paymentTransactionId: walletTxn?._id || null,
       trackingHistory: [{ status: 'placed', note: 'Order placed successfully' }],
     });
+
+    // Link transaction reference back to order
+    if (walletTxn) {
+      walletTxn.reference = order._id.toString();
+      await walletTxn.save();
+    }
 
     // Clear cart
     await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
@@ -94,7 +102,9 @@ const getMyOrders = async (req, res) => {
 // @route GET /api/orders/:id
 const getOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('items.product', 'name images');
+    const order = await Order.findById(req.params.id)
+      .populate('items.product', 'name images')
+      .populate('paymentTransactionId', 'type amount description createdAt balanceAfter reference');
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.customer.toString() !== req.user._id.toString() && req.user.role !== 'admin')
       return res.status(403).json({ message: 'Access denied' });
@@ -120,11 +130,44 @@ const getSellerOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate('items.product');
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    const prevStatus = order.orderStatus;
     order.orderStatus = status;
     order.trackingHistory.push({ status, note: note || '' });
+
+    // On delivery: mark COD as paid and credit each seller's wallet
+    if (status === 'delivered' && prevStatus !== 'delivered') {
+      // Mark COD orders as paid
+      if (order.paymentMethod === 'cod' && order.paymentStatus !== 'paid') {
+        order.paymentStatus = 'paid';
+      }
+
+      // Credit each seller for their items in this order
+      const sellerTotals = {};
+      for (const item of order.items) {
+        const sellerId = item.seller.toString();
+        sellerTotals[sellerId] = (sellerTotals[sellerId] || 0) + item.price * item.quantity;
+      }
+
+      for (const [sellerId, amount] of Object.entries(sellerTotals)) {
+        const seller = await User.findById(sellerId);
+        if (seller) {
+          seller.walletBalance += amount;
+          await seller.save();
+          await WalletTransaction.create({
+            user: seller._id,
+            type: 'credit',
+            amount,
+            description: `Payment received for order #${order._id.toString().slice(-8).toUpperCase()}`,
+            reference: order._id.toString(),
+            balanceAfter: seller.walletBalance,
+          });
+        }
+      }
+    }
+
     await order.save();
     res.json(order);
   } catch (err) {
