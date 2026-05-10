@@ -11,7 +11,15 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('CORS policy: origin not allowed'));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
